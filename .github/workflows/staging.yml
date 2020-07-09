@@ -1,0 +1,38 @@
+name: Deploy to staging
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  Staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12.x"
+
+      - name: Get yarn cache
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Deploy staging
+        run: |
+          ./node_modules/.bin/lerna run --parallel deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.STAGING_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGING_AWS_SECRET_ACCESS_KEY }}
